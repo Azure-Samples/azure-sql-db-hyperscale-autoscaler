@@ -87,10 +87,10 @@ namespace Azure.SQL.DB.Hyperscale.Tools
     }
 
     public class AutoScalerConfiguration {
-        public int vCoreMin = 2;
-        public int vCoreMax = 8;
-        public decimal HighThreshold = 70.0M;
-        public decimal LowThreshold = 20.0M;
+        public int vCoreMin = int.Parse(Environment.GetEnvironmentVariable("vCoreMin"));
+        public int vCoreMax = int.Parse(Environment.GetEnvironmentVariable("vCoreMax"));
+        public decimal HighThreshold = decimal.Parse(Environment.GetEnvironmentVariable("HighThreshold"));
+        public decimal LowThreshold = decimal.Parse(Environment.GetEnvironmentVariable("LowThreshold"));
     }
 
     public static class AutoScaler
@@ -142,7 +142,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 var currentSlo = HyperScaleTier.Parse(result.ServiceObjective);
 
                 // TODO: Write to AppInsight
-                // log.LogInformation(JsonConvert.SerializeObject(result));
+                log.LogInformation(JsonConvert.SerializeObject(result));
 
                 if (result.DataPoints < 5)
                 {
