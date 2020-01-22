@@ -123,7 +123,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 // TODO: make sure at least 4 data points are collected (1 minute)
                 // otherwise autoscaler will always bounce back to lower SLO after increasing it
 
-                var result = conn.QuerySingleOrDefault<UsageInfo>(@"
+                var usageInfo = conn.QuerySingleOrDefault<UsageInfo>(@"
                     select top 1
                         [end_time] as TimeStamp, 
                         databasepropertyex(db_name(), 'ServiceObjective') as ServiceObjective,
@@ -137,29 +137,28 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 ");
 
                 // If SLO is happening result could be null
-                if (result == null)
+                if (usageInfo == null)
                 {
                     log.LogInformation("No information received from server.");
                     return;
                 }
 
                 // Decode current SLO
-                var currentSlo = HyperScaleTier.Parse(result.ServiceObjective);
-
-                // TODO: Write to AppInsight
-                log.LogInformation(JsonConvert.SerializeObject(result));
+                var currentSlo = HyperScaleTier.Parse(usageInfo.ServiceObjective);
+                var targetSlo = currentSlo;
 
                 // At least one minute of historical data is needed
-                if (result.DataPoints < 5)
+                if (usageInfo.DataPoints < 5)
                 {
                     log.LogInformation("Not enough data points.");
+                    conn.Execute("INSERT INTO [dbo].[AutoscalerMonitor] (RequestedSLO, UsageInfo) VALUES (NULL, NULL)");
                     return;
                 }
 
                 // Scale Up
-                if (result.MovingAvgCpuPercent > autoscalerConfig.HighThreshold)
+                if (usageInfo.MovingAvgCpuPercent > autoscalerConfig.HighThreshold)
                 {
-                    var targetSlo = GetServiceObjective(result.ServiceObjective, SearchDirection.Next);
+                    targetSlo = GetServiceObjective(currentSlo, SearchDirection.Next);
                     if (targetSlo != null && currentSlo.Cores < autoscalerConfig.vCoreMax && currentSlo != targetSlo)
                     {
                         log.LogInformation($"HIGH threshold reached: scaling up to {targetSlo}");
@@ -168,33 +167,34 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 }
 
                 // Scale Down
-                if (result.MovingAvgCpuPercent < autoscalerConfig.LowThreshold)
+                if (usageInfo.MovingAvgCpuPercent < autoscalerConfig.LowThreshold)
                 {
-                    var targetSlo = GetServiceObjective(result.ServiceObjective, SearchDirection.Previous);
+                    targetSlo = GetServiceObjective(currentSlo, SearchDirection.Previous);
                     if (targetSlo != null && currentSlo.Cores > autoscalerConfig.vCoreMin && currentSlo != targetSlo)
                     {
                         log.LogInformation($"LOW threshold reached: scaling down to {targetSlo}");
                         conn.Execute($"alter database [{databaseName}] modify (service_objective = '{targetSlo}')");
                     }
                 }
+
+                // Write current SLO to monitor table
+                conn.Execute("INSERT INTO [dbo].[AutoscalerMonitor] (RequestedSLO, UsageInfo) VALUES (@RequestedSLO, @UsageInfo)", new { @RequestedSLO = targetSlo.ToString().ToUpper(), UsageInfo = JsonConvert.SerializeObject(usageInfo) });
             }
         }
 
-        public static HyperScaleTier GetServiceObjective(string currentServiceObjective, SearchDirection direction)
+        public static HyperScaleTier GetServiceObjective(HyperScaleTier currentSLO, SearchDirection direction)
         {
-            var curHS = HyperScaleTier.Parse(currentServiceObjective);
-            HyperScaleTier newHS = null;
-
-            var availableSlos = HyperscaleSLOs[curHS.Generation];
-            var index = availableSlos.IndexOf(curHS.ToString());
+            var targetSLO = currentSLO;
+            var availableSlos = HyperscaleSLOs[currentSLO.Generation];
+            var index = availableSlos.IndexOf(currentSLO.ToString());
 
             if (direction == SearchDirection.Next && index < availableSlos.Count)
-                    newHS = HyperScaleTier.Parse(availableSlos[index + 1]);
+                targetSLO = HyperScaleTier.Parse(availableSlos[index + 1]);
 
             if (direction == SearchDirection.Previous && index > 0)
-                    newHS = HyperScaleTier.Parse(availableSlos[index - 1]);
+                targetSLO = HyperScaleTier.Parse(availableSlos[index - 1]);
 
-            return newHS;
+            return targetSLO;
         }
     }
 }
