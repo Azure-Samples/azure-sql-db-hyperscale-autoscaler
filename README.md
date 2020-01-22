@@ -10,3 +10,10 @@ Scaling up or down is pretty fast in Hyperscale - usually 30 second or less - so
 
 The solution requires Azure Functions 3.0. If you are using Visual Studio 2019 you don't have to do anything special. If you are using Visual Studio code, read here how to make sure you have Azure Function 3.0 installed on your machine: [Develop Azure Functions using .NET Core 3.1 ](https://dev.to/azure/develop-azure-functions-using-net-core-3-0-gcm)
 
+## Disclaimer
+
+This sample is intented to show how to autoscale Azure SQL Hyperscale Database, and therefore is not intended to be used in production as is. If you want to use it in production, make sure you correctly determine the correct time window to be used to gather usage data so that it will correctly represent your workload. Also, a different algorithm other than the simple moving average could be better suited to serve your specific workload. 
+
+## How to contribute
+
+All contributions are more than welcome. Please refert to the [Code Of Conduct](CODE_OF_CONDUCT.md) to learn how to contribute.
