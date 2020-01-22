@@ -111,7 +111,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
         }
 
         [FunctionName("AutoScaler")]
-        public static void Run([TimerTrigger("*/15 * * * * *")]TimerInfo myTimer, ILogger log)
+        public static void Run([TimerTrigger("*/15 * * * * *")]TimerInfo timer, ILogger log)
         {
             var autoscalerConfig = new AutoScalerConfiguration();
 
@@ -136,6 +136,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                         end_time desc 
                 ");
 
+                // If SLO is happening result could be null
                 if (result == null)
                 {
                     log.LogInformation("No information received from server.");
@@ -148,6 +149,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 // TODO: Write to AppInsight
                 log.LogInformation(JsonConvert.SerializeObject(result));
 
+                // At least one minute of historical data is needed
                 if (result.DataPoints < 5)
                 {
                     log.LogInformation("Not enough data points.");
