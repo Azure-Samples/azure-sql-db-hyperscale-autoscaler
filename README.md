@@ -4,7 +4,23 @@ This is a sample on how autoscaling of Azure SQL DB Hyperscale can be implemente
 
 The code just uses a simple moving average on the CPU load for the last minute; if the value is outside minimum or maximum boundaries it will initiate a scale-up or scale-down. 
 
-Scaling up or down is pretty fast in Hyperscale - usually 30 second or less - so responding to workload spikes can be done pretty quickly.
+Scaling up or down is pretty fast in Hyperscale - usually 15 second or less - so responding to workload spikes can be done pretty quickly.
+
+## Deploy
+
+Deploy the solution to an Azure Function and then add the following [application settings](https://docs.microsoft.com/en-us/azure/azure-functions/functions-how-to-use-azure-function-app-settings#settings):
+
+```json
+"AzureSQLConnection": "...",
+"HighThreshold": 70,
+"LowThreshold": 20,
+"vCoreMin": 2,
+"vCoreMax": 8
+```
+
+- AzureSQLConnection: Connection string to Azure SQL Hyperscale to monitor. Make sure the user used to login to the database has the [right permission](https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql?view=azuresqldb-current#permissions-1) to run ALTER DATABASE command.
+- HighThreshold, LowThreshold: the minium and maximum threshold values after which scaling up or down will be initiated
+- vCoreMax, vCoreMin: the maximum and minimum number of cores you want to use as limits to scale up and down
 
 ## Notes
 
