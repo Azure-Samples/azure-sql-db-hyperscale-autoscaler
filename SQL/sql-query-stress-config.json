@@ -1,0 +1,38 @@
+{
+    "CollectIoStats": true,
+    "CollectTimeStats": true,
+    "CommandTimeout": 0,
+    "ConnectionTimeout": 15,
+    "DelayBetweenQueries": 75,
+    "EnableConnectionPooling": true,
+    "ForceDataRetrieval": false,
+    "KillQueriesOnCancel": true,
+    "MainDbConnectionInfo": {
+        "ApplicationIntent": 0,
+        "ConnectTimeout": 15,
+        "Database": "mydatabase",
+        "EnablePooling": true,
+        "IntegratedAuth": false,
+        "Login": "mylogin",
+        "MaxPoolSize": 2,
+        "Password": "mypassword",
+        "Server": "myserver.database.windows.net"
+    },
+    "MainQuery": "WITH cte AS\u000d\u000a(\u000d\u000a\u0009SELECT\u000d\u000a\u0009\u0009CASE WHEN ([Number] % 2) = 1 THEN 1 ELSE 0 END AS GroupId,\u000d\u000a\u0009\u0009[Number],\u000d\u000a\u0009\u0009Random\u000d\u000a\u0009FROM\u000d\u000a\u0009\u0009dbo.[Numbers]\u000d\u000a\u0009WHERE\u000d\u000a\u0009\u0009[Number] BETWEEN 1 AND 300000\u000d\u000a)\u000d\u000aSELECT\u000d\u000a\u0009GroupId,\u000d\u000a\u0009COUNT(*),\u000d\u000a\u0009AVG(Random),\u000d\u000a\u0009STDEV(Random)\u000d\u000aFROM\u000d\u000a\u0009cte\u000d\u000aGROUP BY\u000d\u000a\u0009GroupId",
+    "NumIterations": 1200,
+    "NumThreads": 2,
+    "ParamDbConnectionInfo": {
+        "ApplicationIntent": 0,
+        "ConnectTimeout": 0,
+        "Database": "",
+        "EnablePooling": true,
+        "IntegratedAuth": true,
+        "Login": "",
+        "MaxPoolSize": 0,
+        "Password": "",
+        "Server": ""
+    },
+    "ParamMappings": [],
+    "ParamQuery": "",
+    "ShareDbSettings": true
+}
