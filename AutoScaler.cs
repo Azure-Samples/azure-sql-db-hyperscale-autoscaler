@@ -94,6 +94,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
         public int vCoreMax = int.Parse(Environment.GetEnvironmentVariable("vCoreMax"));
         public decimal HighThreshold = decimal.Parse(Environment.GetEnvironmentVariable("HighThreshold"));
         public decimal LowThreshold = decimal.Parse(Environment.GetEnvironmentVariable("LowThreshold"));
+        public int RequiredDataPoints = int.Parse(Environment.GetEnvironmentVariable("RequiredDataPoints"));
     }
 
     public static class AutoScaler
@@ -120,9 +121,8 @@ namespace Azure.SQL.DB.Hyperscale.Tools
 
             using (var conn = new SqlConnection(connectionString))
             {
-                // TODO: make sure at least 4 data points are collected (1 minute)
-                // otherwise autoscaler will always bounce back to lower SLO after increasing it
-
+                // Get usage data
+                var followingRows = autoscalerConfig.RequiredDataPoints - 1;
                 var usageInfo = conn.QuerySingleOrDefault<UsageInfo>(@"
                     select top 1
                         [end_time] as TimeStamp, 
@@ -148,10 +148,10 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 var targetSlo = currentSlo;
 
                 // At least one minute of historical data is needed
-                if (usageInfo.DataPoints < 5)
+                if (usageInfo.DataPoints < autoscalerConfig.RequiredDataPoints)
                 {
                     log.LogInformation("Not enough data points.");
-                    conn.Execute("INSERT INTO [dbo].[AutoscalerMonitor] (RequestedSLO, UsageInfo) VALUES (NULL, NULL)");
+                    conn.Execute("INSERT INTO [dbo].[AutoscalerMonitor] (RequestedSLO, UsageInfo) VALUES (NULL, @UsageInfo)", new { UsageInfo = JsonConvert.SerializeObject(usageInfo) });
                     return;
                 }
 
@@ -177,7 +177,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                     }
                 }
 
-                // Write current SLO to monitor table
+                // Write current SLO to monitor table                
                 conn.Execute("INSERT INTO [dbo].[AutoscalerMonitor] (RequestedSLO, UsageInfo) VALUES (@RequestedSLO, @UsageInfo)", new { @RequestedSLO = targetSlo.ToString().ToUpper(), UsageInfo = JsonConvert.SerializeObject(usageInfo) });
             }
         }
