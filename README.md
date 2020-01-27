@@ -4,7 +4,7 @@ This is a sample on how autoscaling of Azure SQL DB Hyperscale can be implemente
 
 The code just uses a simple moving average on the CPU load for the last minute; if the value is outside minimum or maximum boundaries it will initiate a scale-up or scale-down.
 
-Scaling up or down is pretty fast in Hyperscale - usually 15 second or less - so responding to workload spikes can be done pretty quickly.
+Scaling up or down is pretty fast in Hyperscale - usually 15 seconds or less - so responding to workload spikes can be done pretty quickly.
 
 ## Deploy
 
