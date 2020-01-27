@@ -123,13 +123,13 @@ namespace Azure.SQL.DB.Hyperscale.Tools
             {
                 // Get usage data
                 var followingRows = autoscalerConfig.RequiredDataPoints - 1;
-                var usageInfo = conn.QuerySingleOrDefault<UsageInfo>(@"
+                var usageInfo = conn.QuerySingleOrDefault<UsageInfo>($@"
                     select top 1
                         [end_time] as TimeStamp, 
                         databasepropertyex(db_name(), 'ServiceObjective') as ServiceObjective,
                         [avg_cpu_percent] as AvgCpuPercent, 
-                        avg([avg_cpu_percent]) over (order by end_time desc rows between current row and 4 following) as MovingAvgCpuPercent,
-                        count(*) over (order by end_time desc rows between current row and 4 following) as DataPoints
+                        avg([avg_cpu_percent]) over (order by end_time desc rows between current row and {followingRows} following) as MovingAvgCpuPercent,
+                        count(*) over (order by end_time desc rows between current row and {followingRows} following) as DataPoints
                     from 
                         sys.dm_db_resource_stats
                     order by 
@@ -151,6 +151,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 if (usageInfo.DataPoints < autoscalerConfig.RequiredDataPoints)
                 {
                     log.LogInformation("Not enough data points.");
+                    WriteMetrics(log, usageInfo, currentSlo, targetSlo);
                     conn.Execute("INSERT INTO [dbo].[AutoscalerMonitor] (RequestedSLO, UsageInfo) VALUES (NULL, @UsageInfo)", new { UsageInfo = JsonConvert.SerializeObject(usageInfo) });
                     return;
                 }
@@ -177,9 +178,19 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                     }
                 }
 
-                // Write current SLO to monitor table                
+                // Write current SLO to monitor table  
+                WriteMetrics(log, usageInfo, currentSlo, targetSlo);              
                 conn.Execute("INSERT INTO [dbo].[AutoscalerMonitor] (RequestedSLO, UsageInfo) VALUES (@RequestedSLO, @UsageInfo)", new { @RequestedSLO = targetSlo.ToString().ToUpper(), UsageInfo = JsonConvert.SerializeObject(usageInfo) });
             }
+        }
+
+        private static void WriteMetrics(ILogger log, UsageInfo usageInfo, HyperScaleTier currentSlo, HyperScaleTier targetSlo)
+        {
+            log.LogMetric("DataPoints", usageInfo.DataPoints);
+            log.LogMetric("AvgCpuPercent", Convert.ToDouble(usageInfo.AvgCpuPercent));
+            log.LogMetric("MovingAvgCpuPercent", Convert.ToDouble(usageInfo.MovingAvgCpuPercent));
+            log.LogMetric("CurrentCores", Convert.ToDouble(currentSlo.Cores));
+            log.LogMetric("TargetCores", Convert.ToDouble(targetSlo.Cores));
         }
 
         public static HyperScaleTier GetServiceObjective(HyperScaleTier currentSLO, SearchDirection direction)
