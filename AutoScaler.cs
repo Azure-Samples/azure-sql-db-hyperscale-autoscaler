@@ -124,8 +124,8 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 // Get usage data
                 var followingRows = autoscalerConfig.RequiredDataPoints - 1;
                 var usageInfo = conn.QuerySingleOrDefault<UsageInfo>($@"
-                    select top 1
-                        [end_time] as TimeStamp, 
+                    select top (1)
+                        [end_time] as [TimeStamp], 
                         databasepropertyex(db_name(), 'ServiceObjective') as ServiceObjective,
                         [avg_cpu_percent] as AvgCpuPercent, 
                         avg([avg_cpu_percent]) over (order by end_time desc rows between current row and {followingRows} following) as MovingAvgCpuPercent,
