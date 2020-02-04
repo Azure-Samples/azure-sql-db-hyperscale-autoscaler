@@ -2,11 +2,11 @@
 
 This is a sample on how autoscaling of Azure SQL DB Hyperscale can be implemented using Azure Functions. The code just uses a simple moving average on the CPU load for the last minute; if the value is outside minimum or maximum boundaries it will initiate a scale-up or scale-down.
 
-Scaling up or down is pretty fast in Hyperscale - usually 15 seconds or less - so responding to workload spikes can be done pretty quickly.
-
 A detailed article related to this repository is available here:
 
-[Autoscaling Azure SQL Hyperscale](https://techcommunity.microsoft.com/t5/azure-sql-database/autoscaling-azure-sql-hyperscale/ba-p/1149025)
+[Autoscaling Azure SQL Hyperscale`](https://techcommunity.microsoft.com/t5/azure-sql-database/autoscaling-azure-sql-hyperscale/ba-p/1149025)
+
+Scaling up or down is pretty fast in Hyperscale so responding to workload spikes can be done pretty quickly.
 
 ## Deploy
 
