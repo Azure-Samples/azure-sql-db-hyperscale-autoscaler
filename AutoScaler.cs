@@ -78,8 +78,12 @@ namespace Azure.SQL.DB.Hyperscale.Tools
         public DateTime TimeStamp = DateTime.Now;
         public String ServiceObjective = String.Empty;
         public Decimal AvgCpuPercent = 0;
+        public Decimal AvgInstanceCpuPercent = 0;
         public Decimal MovingAvgCpuPercent = 0;
+        public Decimal MovingAvgInstanceCpuPercent = 0;
         public int DataPoints = 0;
+        public int TimesAbove = 0;
+        public int TimesBelow = 0;
     }
 
     public enum SearchDirection
@@ -124,16 +128,36 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 // Get usage data
                 var followingRows = autoscalerConfig.RequiredDataPoints - 1;
                 var usageInfo = conn.QuerySingleOrDefault<UsageInfo>($@"
+                    with cte as
+                    (
+                        select 
+                            [end_time] as [TimeStamp], 
+                            databasepropertyex(db_name(), 'ServiceObjective') as ServiceObjective,
+                            [avg_cpu_percent] as AvgCpuPercent, 
+                            [avg_instance_cpu_percent] as AvgInstanceCpuPercent, 
+                            avg([avg_cpu_percent]) over (order by end_time desc rows between current row and {followingRows} following) as MovingAvgCpuPercent,
+                            avg([avg_instance_cpu_percent]) over (order by end_time desc rows between current row and {followingRows} following) as MovingAvgInstanceCpuPercent,
+                            count(*) over (order by end_time desc rows between current row and {followingRows} following) as DataPoints
+                        from 
+                            sys.dm_db_resource_stats
+                    ), 
+                    cte2 as
+                    (
+                        select
+                            *,
+                            is_above = case when (MovingAvgCpuPercent > {autoscalerConfig.HighThreshold} or MovingAvgInstanceCpuPercent > {autoscalerConfig.HighThreshold}) then 1 else 0 end,
+                            is_below = case when (MovingAvgCpuPercent < {autoscalerConfig.LowThreshold} and MovingAvgInstanceCpuPercent < {autoscalerConfig.LowThreshold}) then 1 else 0 end
+                        from
+                            cte    
+                    )
                     select top (1)
-                        [end_time] as [TimeStamp], 
-                        databasepropertyex(db_name(), 'ServiceObjective') as ServiceObjective,
-                        [avg_cpu_percent] as AvgCpuPercent, 
-                        avg([avg_cpu_percent]) over (order by end_time desc rows between current row and {followingRows} following) as MovingAvgCpuPercent,
-                        count(*) over (order by end_time desc rows between current row and {followingRows} following) as DataPoints
-                    from 
-                        sys.dm_db_resource_stats
+                        [TimeStamp], ServiceObjective, AvgCpuPercent, AvgInstanceCpuPercent, MovingAvgCpuPercent, MovingAvgInstanceCpuPercent, DataPoints,
+                        sum(is_above) over (order by [TimeStamp] desc rows between current row and {followingRows} following) as TimesAbove,
+                        sum(is_below) over (order by [TimeStamp] desc rows between current row and {followingRows} following) as TimesBelow
+                    from
+                        cte2
                     order by 
-                        end_time desc 
+                        [TimeStamp] desc 
                 ");
 
                 // If SLO is happening result could be null
@@ -157,7 +181,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 }
 
                 // Scale Up
-                if (usageInfo.MovingAvgCpuPercent > autoscalerConfig.HighThreshold)
+                if ((usageInfo.MovingAvgCpuPercent > autoscalerConfig.HighThreshold || usageInfo.MovingAvgInstanceCpuPercent > autoscalerConfig.HighThreshold) && usageInfo.TimesAbove >= 3)
                 {
                     targetSlo = GetServiceObjective(currentSlo, SearchDirection.Next);
                     if (targetSlo != null && currentSlo.Cores < autoscalerConfig.vCoreMax && currentSlo != targetSlo)
@@ -168,7 +192,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 }
 
                 // Scale Down
-                if (usageInfo.MovingAvgCpuPercent < autoscalerConfig.LowThreshold)
+                if ((usageInfo.MovingAvgCpuPercent < autoscalerConfig.LowThreshold && usageInfo.MovingAvgInstanceCpuPercent < autoscalerConfig.LowThreshold) && usageInfo.TimesBelow >= 3 )
                 {
                     targetSlo = GetServiceObjective(currentSlo, SearchDirection.Previous);
                     if (targetSlo != null && currentSlo.Cores > autoscalerConfig.vCoreMin && currentSlo != targetSlo)
@@ -189,6 +213,8 @@ namespace Azure.SQL.DB.Hyperscale.Tools
             log.LogMetric("DataPoints", usageInfo.DataPoints);
             log.LogMetric("AvgCpuPercent", Convert.ToDouble(usageInfo.AvgCpuPercent));
             log.LogMetric("MovingAvgCpuPercent", Convert.ToDouble(usageInfo.MovingAvgCpuPercent));
+            log.LogMetric("AvgInstanceCpuPercent", Convert.ToDouble(usageInfo.AvgInstanceCpuPercent));
+            log.LogMetric("MovingAvgInstanceCpuPercent", Convert.ToDouble(usageInfo.MovingAvgInstanceCpuPercent));
             log.LogMetric("CurrentCores", Convert.ToDouble(currentSlo.Cores));
             log.LogMetric("TargetCores", Convert.ToDouble(targetSlo.Cores));
         }
