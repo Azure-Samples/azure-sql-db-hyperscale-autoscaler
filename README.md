@@ -1,4 +1,27 @@
+---
+page_type: sample
+languages:
+- tsql
+- sql
+products:
+- azure
+- azure-sql-database
+- azure-functions
+description: "Automatically scale up or down Azure SQL Hyperscale depending on active workload"
+urlFragment: "azure-sql-hyperscale-autoscaler"
+---
+
 # Azure SQL Hyperscale Autoscaler
+
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+
+<!-- 
+Guidelines on README format: https://review.docs.microsoft.com/help/onboard/admin/samples/concepts/readme-template?branch=master
+
+Guidance on onboarding samples to docs.microsoft.com/samples: https://review.docs.microsoft.com/help/onboard/admin/samples/process/onboarding?branch=master
+
+Taxonomies for products and languages: https://review.docs.microsoft.com/new-hope/information-architecture/metadata/taxonomies?branch=master
+-->
 
 This is a sample on how autoscaling of Azure SQL DB Hyperscale can be implemented using Azure Functions. The code just uses a simple moving average on the CPU load for the last minute; if the value is outside minimum or maximum boundaries it will initiate a scale-up or scale-down.
 
