@@ -2,11 +2,13 @@
 page_type: sample
 languages:
 - tsql
+- csharp
 - sql
 products:
-- azure
 - azure-sql-database
 - azure-functions
+- dotnet-core
+- azure
 description: "Automatically scale up or down Azure SQL Hyperscale depending on active workload"
 urlFragment: "azure-sql-hyperscale-autoscaler"
 ---
