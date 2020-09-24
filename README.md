@@ -76,3 +76,4 @@ This sample is intended to show how to auto-scale Azure SQL Hyperscale Database,
 ## How to contribute
 
 All contributions are more than welcome. Please refert to the [Code Of Conduct](CODE_OF_CONDUCT.md) to learn what are the basic rules to follow and then fork the repo and start to submit your PR.
+
