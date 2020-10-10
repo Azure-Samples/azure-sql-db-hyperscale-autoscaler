@@ -4,6 +4,7 @@ languages:
 - tsql
 - csharp
 - sql
+- json
 products:
 - azure-sql-database
 - azure-functions
