@@ -18,7 +18,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
 
         public override string ToString()
         {
-            return $"{Name}_gen{Generation}_{Cores}";
+            return $"{Name}_gen{Generation}_{Cores}".ToUpper();
         }
 
         public override bool Equals(object obj)
@@ -163,7 +163,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                     if (targetSlo != null && currentSlo.Cores < autoscalerConfig.vCoreMax && currentSlo != targetSlo)
                     {
                         log.LogInformation($"HIGH threshold reached: scaling up to {targetSlo}");
-                        conn.Execute($"alter database [{databaseName}] modify (service_objective = '{targetSlo}')");
+                        conn.Execute($"ALTER DATABASE [{databaseName}] MODIFY (SERVICE_OBJECTIVE = '{targetSlo}')");
                     }
                 }
 
@@ -174,7 +174,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                     if (targetSlo != null && currentSlo.Cores > autoscalerConfig.vCoreMin && currentSlo != targetSlo)
                     {
                         log.LogInformation($"LOW threshold reached: scaling down to {targetSlo}");
-                        conn.Execute($"alter database [{databaseName}] modify (service_objective = '{targetSlo}')");
+                        conn.Execute($"ALTER DATABASE [{databaseName}] MODIFY (SERVICE_OBJECTIVE = '{targetSlo}')");
                     }
                 }
 

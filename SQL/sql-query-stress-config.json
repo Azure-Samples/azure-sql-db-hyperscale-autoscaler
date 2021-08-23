@@ -3,7 +3,7 @@
     "CollectTimeStats": true,
     "CommandTimeout": 0,
     "ConnectionTimeout": 15,
-    "DelayBetweenQueries": 75,
+    "DelayBetweenQueries": 50,
     "EnableConnectionPooling": true,
     "ForceDataRetrieval": false,
     "KillQueriesOnCancel": true,
