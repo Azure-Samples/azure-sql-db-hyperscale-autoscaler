@@ -26,7 +26,7 @@ Guidance on onboarding samples to docs.microsoft.com/samples: https://review.doc
 Taxonomies for products and languages: https://review.docs.microsoft.com/new-hope/information-architecture/metadata/taxonomies?branch=master
 -->
 
-This is a sample on how autoscaling of Azure SQL DB Hyperscale can be implemented using Azure Functions. The code just uses a simple moving average on the CPU load for the last minute; if the value is outside minimum or maximum boundaries it will initiate a scale-up or scale-down.
+This is a sample on how autoscaling of Azure SQL DB Hyperscale can be implemented using Azure Functions. The code just uses a simple moving average on the CPU or Workers load for the last minute; if the value is outside minimum or maximum boundaries it will initiate a scale-up or scale-down.
 
 A detailed article related to this repository is available here:
 
@@ -50,15 +50,18 @@ Deploy the solution to an Azure Function and then add the following [application
 
 ```json
 "AzureSQLConnection": "...",
-"HighThreshold": 70,
-"LowThreshold": 20,
+"HighCpuPercent": 70,
+"LowCpuPercent": 20,
+"HighWorkersPercent": 80,
+"LowWorkersPercent": 30,
 "vCoreMin": 2,
 "vCoreMax": 8,
 "RequiredDataPoints": 5
 ```
 
 - AzureSQLConnection: Connection string to Azure SQL Hyperscale to monitor. Make sure the user used to login to the database has the [right permission](https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql?view=azuresqldb-current#permissions-1) to run ALTER DATABASE command.
-- HighThreshold, LowThreshold: the minium and maximum threshold values after which scaling up or down will be initiated
+- HighCpuPercent, LowCpuPercent: the minium and maximum CPU threshold values after which scaling up or down will be initiated
+- HighWorkersPercent, LowWorkersPercent: the minium and maximum Workers threshold values after which scaling up or down will be initiated
 - vCoreMax, vCoreMin: the maximum and minimum number of cores you want to use as limits to scale up and down
 - RequiredDataPoints: Number of data points that needs to be gathered before initiating any autoscale action
 

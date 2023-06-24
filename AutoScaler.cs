@@ -40,7 +40,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
             return this.ToString().GetHashCode();
         }
 
-        public static bool operator == (HyperScaleTier lhs, HyperScaleTier rhs)
+        public static bool operator ==(HyperScaleTier lhs, HyperScaleTier rhs)
         {
             if (lhs is null)
             {
@@ -53,7 +53,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
             return lhs.Equals(rhs);
         }
 
-        public static bool operator != (HyperScaleTier lhs, HyperScaleTier rhs)
+        public static bool operator !=(HyperScaleTier lhs, HyperScaleTier rhs)
         {
             return !(lhs == rhs);
         }
@@ -79,6 +79,8 @@ namespace Azure.SQL.DB.Hyperscale.Tools
         public String ServiceObjective = String.Empty;
         public Decimal AvgCpuPercent = 0;
         public Decimal MovingAvgCpuPercent = 0;
+        public Decimal WorkersPercent = 0;
+        public Decimal MovingAvgWorkersPercent = 0;
         public int DataPoints = 0;
     }
 
@@ -92,8 +94,10 @@ namespace Azure.SQL.DB.Hyperscale.Tools
     {
         public int vCoreMin = int.Parse(Environment.GetEnvironmentVariable("vCoreMin"));
         public int vCoreMax = int.Parse(Environment.GetEnvironmentVariable("vCoreMax"));
-        public decimal HighThreshold = decimal.Parse(Environment.GetEnvironmentVariable("HighThreshold"));
-        public decimal LowThreshold = decimal.Parse(Environment.GetEnvironmentVariable("LowThreshold"));
+        public decimal HighCpuPercent = decimal.Parse(Environment.GetEnvironmentVariable("HighCpuPercent"));
+        public decimal LowCpuPercent = decimal.Parse(Environment.GetEnvironmentVariable("LowCpuPercent"));
+        public decimal HighWorkersPercent = decimal.Parse(Environment.GetEnvironmentVariable("HighWorkersPercent"));
+        public decimal LowWorkersPercent = decimal.Parse(Environment.GetEnvironmentVariable("LowWorkersPercent"));
         public int RequiredDataPoints = int.Parse(Environment.GetEnvironmentVariable("RequiredDataPoints"));
     }
 
@@ -112,7 +116,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
         }
 
         [FunctionName("AutoScaler")]
-        public static void Run([TimerTrigger("*/15 * * * * *")]TimerInfo timer, ILogger log)
+        public static void Run([TimerTrigger("*/15 * * * * *")] TimerInfo timer, ILogger log)
         {
             var autoscalerConfig = new AutoScalerConfiguration();
 
@@ -129,6 +133,8 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                         databasepropertyex(db_name(), 'ServiceObjective') as ServiceObjective,
                         [avg_cpu_percent] as AvgCpuPercent, 
                         avg([avg_cpu_percent]) over (order by end_time desc rows between current row and {followingRows} following) as MovingAvgCpuPercent,
+                        [max_worker_percent] as WorkersPercent, 
+                        avg([max_worker_percent]) over (order by end_time desc rows between current row and {followingRows} following) as MovingAvgWorkersPercent,
                         count(*) over (order by end_time desc rows between current row and {followingRows} following) as DataPoints
                     from 
                         sys.dm_db_resource_stats
@@ -157,7 +163,8 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 }
 
                 // Scale Up
-                if (usageInfo.MovingAvgCpuPercent > autoscalerConfig.HighThreshold)
+                if (usageInfo.MovingAvgCpuPercent > autoscalerConfig.HighCpuPercent ||
+                    usageInfo.MovingAvgWorkersPercent > autoscalerConfig.HighWorkersPercent)
                 {
                     targetSlo = GetServiceObjective(currentSlo, SearchDirection.Next);
                     if (targetSlo != null && currentSlo.Cores < autoscalerConfig.vCoreMax && currentSlo != targetSlo)
@@ -168,7 +175,8 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 }
 
                 // Scale Down
-                if (usageInfo.MovingAvgCpuPercent < autoscalerConfig.LowThreshold)
+                if (usageInfo.MovingAvgCpuPercent < autoscalerConfig.LowCpuPercent &&
+                    usageInfo.MovingAvgWorkersPercent < autoscalerConfig.LowWorkersPercent)
                 {
                     targetSlo = GetServiceObjective(currentSlo, SearchDirection.Previous);
                     if (targetSlo != null && currentSlo.Cores > autoscalerConfig.vCoreMin && currentSlo != targetSlo)
@@ -179,7 +187,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                 }
 
                 // Write current SLO to monitor table  
-                WriteMetrics(log, usageInfo, currentSlo, targetSlo);              
+                WriteMetrics(log, usageInfo, currentSlo, targetSlo);
                 conn.Execute("INSERT INTO [dbo].[AutoscalerMonitor] (RequestedSLO, UsageInfo) VALUES (@RequestedSLO, @UsageInfo)", new { @RequestedSLO = targetSlo.ToString().ToUpper(), UsageInfo = JsonConvert.SerializeObject(usageInfo) });
             }
         }
@@ -189,6 +197,8 @@ namespace Azure.SQL.DB.Hyperscale.Tools
             log.LogMetric("DataPoints", usageInfo.DataPoints);
             log.LogMetric("AvgCpuPercent", Convert.ToDouble(usageInfo.AvgCpuPercent));
             log.LogMetric("MovingAvgCpuPercent", Convert.ToDouble(usageInfo.MovingAvgCpuPercent));
+            log.LogMetric("WorkersPercent", Convert.ToDouble(usageInfo.WorkersPercent));
+            log.LogMetric("MovingAvgWorkersPercent", Convert.ToDouble(usageInfo.MovingAvgWorkersPercent));
             log.LogMetric("CurrentCores", Convert.ToDouble(currentSlo.Cores));
             log.LogMetric("TargetCores", Convert.ToDouble(targetSlo.Cores));
         }
