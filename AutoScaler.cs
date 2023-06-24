@@ -162,6 +162,9 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                     return;
                 }
 
+                // If the average reaches at least one of the conditions, then the scale up is necessary.
+                // Unlike Scale Down, where all conditions must be met.
+
                 // Scale Up
                 if (usageInfo.MovingAvgCpuPercent > autoscalerConfig.HighCpuPercent ||
                     usageInfo.MovingAvgWorkersPercent > autoscalerConfig.HighWorkersPercent)
@@ -173,6 +176,10 @@ namespace Azure.SQL.DB.Hyperscale.Tools
                         conn.Execute($"ALTER DATABASE [{databaseName}] MODIFY (SERVICE_OBJECTIVE = '{targetSlo}')");
                     }
                 }
+
+                // Unlike Scale Up, we have here a "AND" condition, this is because it only makes sense to decrease
+                // if all the requirements are lower than expected, while for Scale Up one of them is necessary, so there,
+                // we have an "OR" condition
 
                 // Scale Down
                 if (usageInfo.MovingAvgCpuPercent < autoscalerConfig.LowCpuPercent &&
