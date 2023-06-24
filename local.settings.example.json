@@ -1,0 +1,25 @@
+{
+    "IsEncrypted": false,
+    "Values": {
+        "AzureSQLConnection": "...",
+        "LowCpuPercent": "20",
+        "HighCpuPercent": "70",
+        "LowWorkersPercent": "30",
+        "HighWorkersPercent": "80",
+        "RequiredDataPoints": "5",
+        "vCoreMax": "10",
+        "vCoreMin": "4"
+    },
+    "ConnectionStrings": {
+        "APPINSIGHTS_INSTRUMENTATIONKEY": "...",
+        "APPLICATIONINSIGHTS_CONNECTION_STRING": "...",
+        "AzureWebJobsStorage": "...",
+        "FUNCTIONS_EXTENSION_VERSION": "...",
+        "FUNCTIONS_WORKER_RUNTIME": "...",
+        "WEBSITE_CONTENTAZUREFILECONNECTIONSTRING": "...",
+        "WEBSITE_CONTENTSHARE": "..."
+    },
+    "Host": {
+        "CORS": "*"
+    }
+}
