@@ -8,7 +8,7 @@ languages:
 products:
 - azure-sql-database
 - azure-functions
-- dotnet-core
+- dotnet
 - azure
 description: "Automatically scale up or down Azure SQL Hyperscale depending on active workload"
 urlFragment: "azure-sql-hyperscale-autoscaler"
