@@ -47,6 +47,7 @@ Autoscaler data, as an additional sample, is also sent to [Application Insight](
 ### Azure Function
 
 Deploy the solution to an Azure Function and then add the following [application settings](https://docs.microsoft.com/en-us/azure/azure-functions/functions-how-to-use-azure-function-app-settings#settings):
+_(Create a copy of local.settings.example.json to local.settings.json to runs locally)_
 
 ```json
 "AzureSQLConnection": "...",
