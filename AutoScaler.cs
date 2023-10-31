@@ -197,7 +197,7 @@ namespace Azure.SQL.DB.Hyperscale.Tools
         {
             var targetSLO = currentSLO;
             var availableSlos = HyperscaleSLOs[currentSLO.Generation];
-            var index = availableSlos.IndexOf(currentSLO.ToString());
+            var index = availableSlos.IndexOf(currentSLO.ToString().ToLower());
 
             if (direction == SearchDirection.Next && index < availableSlos.Count)
                 targetSLO = HyperScaleTier.Parse(availableSlos[index + 1]);
